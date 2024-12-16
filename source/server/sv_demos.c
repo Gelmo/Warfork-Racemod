@@ -604,7 +604,7 @@ static void SV_RaceDemo_Start( char *clientname, char *playername, bool silent )
 	Q_snprintfz( svs.race_demos[client_id].tempname, demofilename_size, "%s.rec", svs.race_demos[client_id].filename );
 
 	// open it
-	if( FS_FOpenFile( svs.race_demos[client_id].tempname, &svs.race_demos[client_id].file, FS_WRITE|SNAP_DEMO_GZ ) == -1 )
+	if( FS_FOpenFile( svs.race_demos[client_id].tempname, &svs.race_demos[client_id].file, FS_WRITE ) == -1 )
 	{
 		Com_Printf( "Error: Couldn't open file: %s\n", svs.race_demos[client_id].tempname );
 		Mem_ZoneFree( svs.race_demos[client_id].filename );
