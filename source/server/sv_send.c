@@ -159,6 +159,11 @@ void SV_SendServerCommand( client_t *cl, const char *format, ... )
 		if( cl->state < CS_CONNECTING )
 			return;
 		SV_AddServerCommand( cl, message );
+
+		// add to client demo
+		if( svs.race_demos[cl->edict->r.client->ps.playerNum].file )
+			SV_AddServerCommand( &svs.race_demos[cl->edict->r.client->ps.playerNum].client, message );
+
 		return;
 	}
 
@@ -168,6 +173,10 @@ void SV_SendServerCommand( client_t *cl, const char *format, ... )
 		if( client->state < CS_CONNECTING )
 			continue;
 		SV_AddServerCommand( client, message );
+		
+		// add to client demo
+		if( svs.race_demos[i].file )
+			SV_AddServerCommand( &svs.race_demos[i].client, message );
 	}
 
 	// add to demo

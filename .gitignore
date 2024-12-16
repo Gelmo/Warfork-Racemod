@@ -1,0 +1,34 @@
+source/release/
+source/debug/
+source/build*/
+source/*/Debug
+source/*/Release
+source/ipch
+*.sdf
+*.opensdf
+*.vcxproj.user
+*.suo
+
+# Ignore cmake generated files
+**/CMakeCache.txt
+**/CPackConfig.cmake
+**/CPackSourceConfig.cmake
+**/CMakeFiles/
+**/CMakeScripts/
+**/qfusion.build/
+**/*.xcodeproj
+**/Makefile
+*cmake_install.cmake
+*.sln
+*.vcxproj
+*.vcxproj.filters
+
+# Ignore windows cmake generated files
+**/*.dir/
+
+# Ignore SDL2 build files
+libsrcs/SDL2/VisualC/Win32
+libsrcs/SDL2/VisualC/SDL/Win32
+libsrcs/SDL2/VisualC/SDLmain/Win32
+libsrcs/SDL2/VisualC/SDLtest/Win32
+libsrcs/SDL2/VisualC/tests/*/Win32

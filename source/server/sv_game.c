@@ -145,6 +145,10 @@ static void PF_GameCmd( edict_t *ent, const char *cmd )
 			if( client->state < CS_SPAWNED )
 				continue;
 			SV_AddGameCommand( client, cmd );
+
+			// add to client demo
+			if( svs.race_demos[i].file )
+				SV_AddGameCommand( &svs.race_demos[i].client, cmd );
 		}
 	}
 	else
@@ -158,6 +162,10 @@ static void PF_GameCmd( edict_t *ent, const char *cmd )
 			return;
 
 		SV_AddGameCommand( client, cmd );
+
+		// add to client demo
+		if( svs.race_demos[i - 1].file )
+			SV_AddGameCommand( &svs.race_demos[i - 1].client, cmd );
 	}
 }
 

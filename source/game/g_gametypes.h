@@ -134,6 +134,7 @@ typedef struct
 	void *clientCommandFunc;
 	void *botStatusFunc;
 	void *shutdownFunc;
+	void *votePowerFunc;
 
 	int spawnableItemsMask;
 	int respawnableItemsMask;
@@ -180,6 +181,10 @@ typedef struct
 
 	int forceTeamHumans;
 	int forceTeamBots;
+
+	// racesow
+	bool playerInteraction;
+	// !racesow
 } gametype_descriptor_t;
 
 typedef struct

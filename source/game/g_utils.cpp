@@ -1800,6 +1800,10 @@ int G_SolidMaskForEnt( edict_t *ent )
 	int solidmask;
 	if( AI_GetType( ent->ai ) == AI_ISMONSTER )
 		solidmask = MASK_MONSTERSOLID;
+	// racesow
+	else if( ent->r.client )
+		solidmask = MASK_PLAYERSOLID;
+	// !racesow
 	else
 		solidmask = ent->r.clipmask ? ent->r.clipmask : MASK_SOLID;
 
@@ -1927,22 +1931,45 @@ void G_DropToFloor( edict_t *ent )
 void G_DropSpawnpointToFloor( edict_t *ent )
 {
 	vec3_t start, end;
+	vec3_t playerbox_stand_mins_fix, playerbox_stand_maxs_fix;
 	trace_t	trace;
+	bool success = true;
+
+	const float HITBOX_EPSILON = 0.01f;
 
 	VectorCopy( ent->s.origin, start );
 	start[2] += 16;
 	VectorCopy( ent->s.origin, end );
 	end[2] -= 16000;
 
+	// try normal trace first
 	G_Trace( &trace, start, playerbox_stand_mins, playerbox_stand_maxs, end, ent, MASK_PLAYERSOLID );
-	if( trace.startsolid || trace.allsolid )
+	success = !( trace.startsolid || trace.allsolid );
+
+	// try tighter trace second
+	if( !success )
+	{
+		VectorCopy( playerbox_stand_mins, playerbox_stand_mins_fix );
+		VectorCopy( playerbox_stand_maxs, playerbox_stand_maxs_fix );
+
+		for ( int i = 0; i < 2; i++ ) {
+			playerbox_stand_mins_fix[i] += HITBOX_EPSILON;
+			playerbox_stand_maxs_fix[i] -= HITBOX_EPSILON;
+		}
+
+		start[2] -= 16 - HITBOX_EPSILON;
+		G_Trace( &trace, start, playerbox_stand_mins_fix, playerbox_stand_maxs_fix, end, ent, MASK_PLAYERSOLID );
+		success = !( trace.startsolid || trace.allsolid );
+	}
+
+	if( !success )
 	{
 		G_Printf( "Warning: %s %s spawns inside solid. Inhibited\n", ent->classname, vtos( ent->s.origin ) );
 		G_FreeEdict( ent );
 		return;
 	}
 
-	if( ent->spawnflags & 1 )  //  floating items flag, we test that they are not inside solid too
+	if( ent->spawnflags & 1 || !Q_stricmp( cm_mapHeader->string, "IBSP" ) )  //  floating items flag, we test that they are not inside solid too
 		return;
 
 	if( trace.fraction < 1.0f )

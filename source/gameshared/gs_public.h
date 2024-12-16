@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define __GS_PUBLIC_H
 
 #include "gs_ref.h"
+#include "gs_racesow.h" // racesow
 
 // shared callbacks
 
@@ -70,7 +71,7 @@ extern vec3_t item_box_maxs;
 #define DEFAULT_PLAYERSPEED_INSTAGIB 320.0f
 #define DEFAULT_PLAYERSPEED_RACE 320.0f
 #define DEFAULT_JUMPSPEED 280.0f
-#define DEFAULT_DASHSPEED 450.0f
+#define DEFAULT_DASHSPEED 451.0f
 #define PROJECTILE_PRESTEP 100
 #define ELECTROBOLT_RANGE 9001
 

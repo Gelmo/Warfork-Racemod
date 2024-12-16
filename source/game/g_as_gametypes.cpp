@@ -35,6 +35,7 @@ static void GT_ResetScriptData( void )
 	level.gametype.clientCommandFunc = NULL;
 	level.gametype.botStatusFunc = NULL;
 	level.gametype.shutdownFunc = NULL;
+	level.gametype.votePowerFunc = NULL;
 }
 
 void GT_asShutdownScript( void )
@@ -363,6 +364,40 @@ void GT_asCallShutdown( void )
 		GT_asShutdownScript();
 }
 
+//"float GT_VotePower( Client @client, String &votename, bool voted, bool yes )"
+float GT_asCallVotePower( gclient_t *client, const char *votename, bool voted, bool yes )
+{
+	int error;
+	asIScriptContext *ctx;
+	asstring_t *s1;
+
+	if( !level.gametype.votePowerFunc )
+		return 1.0; // should have a hardcoded backup
+
+	ctx = angelExport->asAcquireContext( GAME_AS_ENGINE() );
+
+	error = ctx->Prepare( static_cast<asIScriptFunction *>(level.gametype.votePowerFunc) );
+	if( error < 0 )
+		return false;
+
+	// Now we need to pass the parameters to the script function.
+	s1 = angelExport->asStringFactoryBuffer( votename, strlen( votename ) );
+
+	ctx->SetArgObject( 0, client );
+	ctx->SetArgObject( 1, s1 );
+	ctx->SetArgByte( 2, voted );
+	ctx->SetArgByte( 3, yes );
+
+	error = ctx->Execute();
+	if( G_ExecutionErrorReport( error ) )
+		GT_asShutdownScript();
+
+	angelExport->asStringRelease( s1 );
+
+	// Retrieve the return from the context
+	return ctx->GetReturnFloat();
+}
+
 static bool G_asInitializeGametypeScript( asIScriptModule *asModule )
 {
 	int error;
@@ -486,6 +521,16 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule )
 	fdeclstr = "void GT_Shutdown()";
 	level.gametype.shutdownFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.shutdownFunc )
+	{
+		if( developer->integer || sv_cheats->integer )
+			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+	}
+	else
+		funcCount++;
+
+	fdeclstr = "float GT_VotePower( Client @client, String &votename, bool voted, bool yes )";
+	level.gametype.votePowerFunc = asModule->GetFunctionByDecl( fdeclstr );
+	if( !level.gametype.votePowerFunc )
 	{
 		if( developer->integer || sv_cheats->integer )
 			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
