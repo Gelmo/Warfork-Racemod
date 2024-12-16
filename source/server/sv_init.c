@@ -248,6 +248,7 @@ static void SV_SpawnServer( const char *server, bool devmap )
 	if( devmap )
 		Cvar_ForceSet( "sv_cheats", "1" );
 	Cvar_FixCheatVars();
+	Cvar_ForceSet( "rs_prevmap", sv.mapname );  // racesow
 
 	Com_Printf( "------- Server Initialization -------\n" );
 	Com_Printf( "SpawnServer: %s\n", server );
@@ -275,7 +276,8 @@ static void SV_SpawnServer( const char *server, bool devmap )
 	Q_snprintfz( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%i", checksum );
 
 	// reserve the first modelIndexes for inline models
-	for( i = 1; i < CM_NumInlineModels( svs.cms ); i++ )
+	// // racesow - allow 50 models to be loaded
+	for( i = 1; ( i < CM_NumInlineModels( svs.cms ) ) && ( i < MAX_MODELS - 50 ); i++ )
 		Q_snprintfz( sv.configstrings[CS_MODELS + i], sizeof( sv.configstrings[CS_MODELS + i] ), "*%i", i );
 
 	// set serverinfo variable
@@ -356,6 +358,7 @@ void SV_InitGame( void )
 	svs.clients = Mem_Alloc( sv_mempool, sizeof( client_t )*sv_maxclients->integer );
 	svs.client_entities.num_entities = sv_maxclients->integer * UPDATE_BACKUP * MAX_SNAP_ENTITIES;
 	svs.client_entities.entities = Mem_Alloc( sv_mempool, sizeof( entity_state_t ) * svs.client_entities.num_entities );
+	svs.race_demos = Mem_Alloc( sv_mempool, sizeof( server_static_demo_t )*sv_maxclients->integer );
 
 	// init network stuff
 
@@ -562,6 +565,12 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect )
 	{
 		Mem_Free( svs.client_entities.entities );
 		memset( &svs.client_entities, 0, sizeof( svs.client_entities ) );
+	}
+
+	if ( svs.race_demos )
+	{
+		Mem_Free( svs.race_demos );
+		svs.race_demos = NULL;
 	}
 
 	if( svs.cms )

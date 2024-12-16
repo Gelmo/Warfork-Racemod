@@ -717,6 +717,9 @@ void SV_Frame( int realmsec, int gamemsec )
 		// write snap to server demo file
 		SV_Demo_WriteSnap();
 
+		// write snap to client demo files
+		SV_RaceDemo_WriteSnap();
+
 		// run matchmaker stuff
 		SV_CheckMatchUUID();
 

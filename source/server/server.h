@@ -287,6 +287,8 @@ typedef struct
 
 	server_static_demo_t demo;
 
+	server_static_demo_t *race_demos;   // [sv_maxclients->integer];
+
 	purelist_t *purelist;				// pure file support
 
 	cmodel_state_t *cms;                // passed to CM-functions
@@ -497,6 +499,7 @@ void SV_Status_f( void );
 // sv_ents.c
 //
 void SV_WriteFrameSnapToClient( client_t *client, msg_t *msg );
+void SV_WriteFrameSnapToClientDemo( client_t *client, msg_t *msg );
 void SV_BuildClientFrameSnap( client_t *client );
 
 
@@ -517,16 +520,25 @@ void SV_InitEdict( edict_t *e );
 //
 // sv_demos.c
 //
+static void SV_RaceDemo_Stop( int client_id, bool cancel, bool silent, char *filename, unsigned int time );
+
 void SV_Demo_WriteSnap( void );
+void SV_RaceDemo_WriteSnap( void );
 void SV_Demo_Start_f( void );
+void SV_RaceDemo_Start_f( void );
 void SV_Demo_Stop_f( void );
+void SV_RaceDemo_Stop_f( void );
 void SV_Demo_Cancel_f( void );
+void SV_RaceDemo_Cancel_f( void );
 void SV_Demo_Purge_f( void );
+void SV_RaceDemo_Purge_f( void );
 
 void SV_DemoList_f( client_t *client );
 void SV_DemoGet_f( client_t *client );
 
 #define SV_SetDemoMetaKeyValue(k,v) svs.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue(svs.demo.meta_data, sizeof(svs.demo.meta_data), svs.demo.meta_data_realsize, k, v)
+
+#define SV_SetRaceDemoMetaKeyValue(i,k,v) svs.race_demos[i].meta_data_realsize = SNAP_SetDemoMetaKeyValue(svs.race_demos[i].meta_data, sizeof(svs.race_demos[i].meta_data), svs.race_demos[i].meta_data_realsize, k, v)
 
 bool SV_IsDemoDownloadRequest( const char *request );
 

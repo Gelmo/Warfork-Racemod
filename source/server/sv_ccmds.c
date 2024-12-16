@@ -423,9 +423,13 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand( "killserver", SV_KillServer_f );
 
 	Cmd_AddCommand( "serverrecord", SV_Demo_Start_f );
+	Cmd_AddCommand( "racerecord", SV_RaceDemo_Start_f );
 	Cmd_AddCommand( "serverrecordstop", SV_Demo_Stop_f );
+	Cmd_AddCommand( "racerecordstop", SV_RaceDemo_Stop_f );
 	Cmd_AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
+	Cmd_AddCommand( "racerecordcancel", SV_RaceDemo_Cancel_f );
 	Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
+	Cmd_AddCommand( "racerecordpurge", SV_RaceDemo_Purge_f );
 
 	Cmd_AddCommand( "purelist", SV_PureList_f );
 
@@ -458,9 +462,13 @@ void SV_ShutdownOperatorCommands( void )
 	Cmd_RemoveCommand( "killserver" );
 
 	Cmd_RemoveCommand( "serverrecord" );
+	Cmd_RemoveCommand( "racerecord" );
 	Cmd_RemoveCommand( "serverrecordstop" );
+	Cmd_RemoveCommand( "racerecordstop" );
 	Cmd_RemoveCommand( "serverrecordcancel" );
+	Cmd_RemoveCommand( "racerecordcancel" );
 	Cmd_RemoveCommand( "serverrecordpurge" );
+	Cmd_RemoveCommand( "racerecordpurge" );
 
 	Cmd_RemoveCommand( "purelist" );
 

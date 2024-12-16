@@ -1238,6 +1238,10 @@ static const asProperty_t gametypedescr_Properties[] =
 	{ ASLIB_PROPERTY_DECL(uint, forceTeamBots), ASLIB_FOFFSET(gametype_descriptor_t, forceTeamBots) },
 	{ ASLIB_PROPERTY_DECL(bool, disableObituaries), ASLIB_FOFFSET(gametype_descriptor_t, disableObituaries) },
 
+	// racesow
+	{ ASLIB_PROPERTY_DECL(bool, playerInteraction), ASLIB_FOFFSET(gametype_descriptor_t, playerInteraction) },
+	// !racesow
+
 	ASLIB_PROPERTY_NULL
 };
 
@@ -1836,7 +1840,7 @@ static void objectGameClient_setPMoveMaxSpeed( float speed, gclient_t *self )
 	if( speed < 0.0f )
 		self->ps.pmove.stats[PM_STAT_MAXSPEED] = (short)DEFAULT_PLAYERSPEED;
 	else
-		self->ps.pmove.stats[PM_STAT_MAXSPEED] = ( (int)speed & 0xFFFF );
+		self->ps.pmove.stats[PM_STAT_MAXSPEED] = ( (int)( speed + 0.5f ) & 0xFFFF );
 }
 
 static float objectGameClient_getPMoveMaxSpeed( gclient_t *self )
@@ -1849,7 +1853,7 @@ static void objectGameClient_setPMoveJumpSpeed( float speed, gclient_t *self )
 	if( speed < 0.0f )
 		self->ps.pmove.stats[PM_STAT_JUMPSPEED] = (short)DEFAULT_JUMPSPEED;
 	else
-		self->ps.pmove.stats[PM_STAT_JUMPSPEED] = ( (int)speed & 0xFFFF );
+		self->ps.pmove.stats[PM_STAT_JUMPSPEED] = ( (int)( speed + 0.5f ) & 0xFFFF );
 }
 
 static float objectGameClient_getPMoveJumpSpeed( gclient_t *self )
@@ -1862,7 +1866,7 @@ static void objectGameClient_setPMoveDashSpeed( float speed, gclient_t *self )
 	if( speed < 0.0f )
 		self->ps.pmove.stats[PM_STAT_DASHSPEED] = (short)DEFAULT_DASHSPEED;
 	else
-		self->ps.pmove.stats[PM_STAT_DASHSPEED] = ( (int)speed & 0xFFFF );
+		self->ps.pmove.stats[PM_STAT_DASHSPEED] = ( (int)( speed + 0.5f ) & 0xFFFF );
 }
 
 static float objectGameClient_getPMoveDashSpeed( gclient_t *self )
@@ -1996,6 +2000,54 @@ static void objectGameClient_DropClient( asstring_t *str, gclient_t *self )
     trap_DropClient( &game.edicts[playerNum + 1], DROP_TYPE_NORECONNECT, str->buffer );
 }
 
+static void objectGameClient_DemoStart( asstring_t *name, gclient_t *self )
+{
+	int playerNum;
+
+	if( !name || !name->buffer )
+		return;
+
+	playerNum = objectGameClient_PlayerNum( self );
+	if( playerNum < 0 || playerNum >= gs.maxclients )
+		return;
+
+	if( objectGameClient_isBot( self ) )
+		return;
+
+	trap_Cmd_ExecuteText( EXEC_APPEND, va( "racerecord %i \"%s\" 1\n", playerNum, name->buffer ) );
+}
+
+static void objectGameClient_DemoStop( asstring_t *name, unsigned int time, gclient_t *self )
+{
+	int playerNum;
+
+	if( !name || !name->buffer )
+		return;
+
+	playerNum = objectGameClient_PlayerNum( self );
+	if( playerNum < 0 || playerNum >= gs.maxclients )
+		return;
+
+	if( objectGameClient_isBot( self ) )
+		return;
+
+	trap_Cmd_ExecuteText( EXEC_APPEND, va( "racerecordstop %i 1 \"%s\" %i\n", playerNum, name->buffer, time ) );
+}
+
+static void objectGameClient_DemoCancel( gclient_t *self )
+{
+	int playerNum;
+
+	playerNum = objectGameClient_PlayerNum( self );
+	if( playerNum < 0 || playerNum >= gs.maxclients )
+		return;
+
+	if( objectGameClient_isBot( self ) )
+		return;
+
+	trap_Cmd_ExecuteText( EXEC_APPEND, va( "racerecordcancel %i 1\n", playerNum ) );
+}
+
 static const asFuncdef_t gameclient_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -2050,6 +2102,10 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL(void, setHelpMessage, ( uint msg )), asFUNCTION(objectGameClient_SetHelpMessage), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL(void, setQuickMenuItems, ( const String &in )), asFUNCTION(objectGameClient_SetQuickMenuItems), asCALL_CDECL_OBJLAST },
     { ASLIB_FUNCTION_DECL(void, dropClient, ( const String &in )), asFUNCTION(objectGameClient_DropClient), asCALL_CDECL_OBJLAST },
+
+	{ ASLIB_FUNCTION_DECL(void, demoStart, ( const String &in )), asFUNCTION(objectGameClient_DemoStart), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL(void, demoStop, ( const String &in, uint time )), asFUNCTION(objectGameClient_DemoStop), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL(void, demoCancel, ()), asFUNCTION(objectGameClient_DemoCancel), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
@@ -2987,6 +3043,26 @@ static asstring_t *asFunc_LoadFile( asstring_t *path )
 	return data;
 }
 
+// racesow
+static void asFunc_RS_removeProjectiles( edict_t *owner )
+{
+	RS_removeProjectiles( owner );
+}
+
+static bool asFunc_RS_QueryPjState( int playerNum )
+{
+	if( RS_QueryPjState( playerNum ) )
+		return true;
+	return false;
+}
+
+static bool asFunc_RS_ResetPjState( int playerNum )
+{
+	RS_ResetPjState( playerNum );
+	return true;
+}
+// !racesow
+
 static int asFunc_FileLength( asstring_t *path )
 {
 	if( !path || !path->len )
@@ -3376,6 +3452,11 @@ static int asFunc_G_GetDefaultColorCorrection( void )
 
 static const asglobfuncs_t asGlobFuncs[] =
 {
+	// racesow
+	{ "bool RS_QueryPjState( int playerNum )", asFUNCTION(asFunc_RS_QueryPjState), NULL },
+	{ "bool RS_ResetPjState( int playerNum )", asFUNCTION(asFunc_RS_ResetPjState), NULL },
+	// !racesow
+
 	{ "Entity @G_SpawnEntity( const String &in )", asFUNCTION(asFunc_G_Spawn), NULL },
 	{ "const String @G_SpawnTempValue( const String &in )", asFUNCTION(asFunc_G_SpawnTempValue), NULL },
 	{ "Entity @G_GetEntity( int entNum )", asFUNCTION(asFunc_GetEntity), NULL },
@@ -3389,6 +3470,7 @@ static const asglobfuncs_t asGlobFuncs[] =
 
 	// misc management utils
 	{ "void G_RemoveAllProjectiles()", asFUNCTION(asFunc_G_Match_RemoveAllProjectiles), NULL },
+	{ "void G_RemoveProjectiles( Entity @ )", asFUNCTION(asFunc_RS_removeProjectiles), NULL }, // racesow
 	{ "void G_ResetLevel()", asFUNCTION(asFunc_G_ResetLevel), NULL },
 	{ "void G_RemoveDeadBodies()", asFUNCTION(asFunc_G_Match_FreeBodyQueue), NULL },
 	{ "void G_Items_RespawnByType( uint typeMask, int item_tag, float delay )", asFUNCTION(asFunc_G_Items_RespawnByType), NULL },

@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../qalgo/q_trie.h"
 
 #define MLIST_CACHE "cache/mapcache.txt"
+#define MLIST_BLOCK "cache/mapblock.txt"
 #define MLIST_NULL  ""
 
 #define MLIST_TRIE_CASING TRIE_CASE_INSENSITIVE
@@ -31,6 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MLIST_UNKNOWN_MAPNAME	"@#$"
 
 #define MLIST_CACHE_EXISTS ( FS_FOpenFile( MLIST_CACHE, NULL, FS_READ|FS_CACHE ) > 0 )
+#define MLIST_BLOCK_EXISTS ( FS_FOpenFile( MLIST_BLOCK, NULL, FS_READ|FS_CACHE ) > 0 )
 
 typedef struct mapinfo_s
 {
@@ -51,6 +53,48 @@ static void ML_GetFullnameFromMap( const char *filename, char *fullname, size_t 
 static bool ML_FilenameExistsExt( const char *filename, bool quick );
 
 /*
+* ML_CheckBlock
+* Checks if map is in blocked list.
+* /maplist rebuild will remove any in the list
+*/
+static bool ML_CheckBlock( const char *filename )
+{
+	char *buffer, *chr, *current, *curend;
+
+	FS_LoadCacheFile( MLIST_BLOCK, (void **)&buffer, NULL, 0 );
+	if( !buffer )
+	{
+		return false;
+	}
+
+	current = curend = buffer;
+
+	for( chr = buffer; *chr; chr++ )
+	{
+		// current character is a delimiter
+		if( *chr == '\n' )
+		{
+			if( *(chr - 1) == '\r' )
+				*(chr - 1) = '\0';	// clear the CR too
+			*chr = '\0';			// clear the LF
+
+			if( !Q_stricmp( filename, current ) )
+			{
+				FS_FreeFile( buffer );
+				return true;
+			}
+			current = chr + 1;
+		}
+		else
+		{
+			curend = chr;
+		}
+	}
+	FS_FreeFile( buffer );
+	return false;
+}
+
+/*
 * ML_AddMap
 * Handles assigning memory for map and adding it to the list
 * in alphabetical order
@@ -68,6 +112,9 @@ static void ML_AddMap( const char *filename, const char *fullname )
 	if( !strcmp(filename, "ui") )
 		return;
 #endif
+
+	if ( ML_CheckBlock(filename) )
+		return;
 
 	if( !fullname )
 	{

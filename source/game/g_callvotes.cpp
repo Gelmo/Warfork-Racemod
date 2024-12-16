@@ -28,6 +28,7 @@ int clientVoteChanges[MAX_CLIENTS];
 
 cvar_t *g_callvote_electpercentage;
 cvar_t *g_callvote_electtime;          // in seconds
+cvar_t *g_callvote_punishtime;          // in seconds
 cvar_t *g_callvote_enabled;
 cvar_t *g_callvote_maxchanges;
 cvar_t *g_callvote_cooldowntime;
@@ -2067,7 +2068,7 @@ static const char *G_CallVotes_String( const callvotedata_t *vote )
 static void G_CallVotes_CheckState( void )
 {
 	edict_t	*ent;
-	int needvotes, yeses = 0, voters = 0, noes = 0;
+	float needvotes, power = 1, yeses = 0, voters = 0, noes = 0;
 	static unsigned int warntimer;
 
 	if( !callvoteState.vote.callvote )
@@ -2115,14 +2116,22 @@ static void G_CallVotes_CheckState( void )
 		}
 
 		voters++;
+		power = GT_asCallVotePower(
+			client,
+			G_CallVotes_String( &callvoteState.vote ),
+			clientVoted[PLAYERNUM(ent)] != VOTED_NOTHING,
+			clientVoted[PLAYERNUM(ent)] == VOTED_YES
+		);
+
+		voters += power;
 		if( clientVoted[PLAYERNUM( ent )] == VOTED_YES )
-			yeses++;
+			yeses += power;
 		else if( clientVoted[PLAYERNUM( ent )] == VOTED_NO )
-			noes++;
+			noes += power;
 	}
 
 	// passed?
-	needvotes = (int)( ( voters * g_callvote_electpercentage->value ) / 100 );
+	needvotes = voters * g_callvote_electpercentage->value / 100;
 	if( yeses > needvotes || callvoteState.vote.operatorcall )
 	{
 		G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_CALLVOTE_PASSED_1_to_2, ( rand()&1 )+1 ) ), GS_MAX_TEAMS, true, NULL );
@@ -2140,7 +2149,25 @@ static void G_CallVotes_CheckState( void )
 		G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_CALLVOTE_FAILED_1_to_2, ( rand()&1 )+1 ) ), GS_MAX_TEAMS, true, NULL );
 		G_PrintMsg( NULL, "Vote %s%s%s failed\n", S_COLOR_YELLOW,
 			G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
+
+		edict_t *caller = callvoteState.vote.caller;
+		bool voted_yes = clientVoted[PLAYERNUM( caller )] == VOTED_YES;
+
 		G_CallVotes_Reset( true );
+
+		if( voters - noes <= needvotes )
+		{
+
+			if( !caller->r.inuse || trap_GetClientState( PLAYERNUM( caller ) ) < CS_SPAWNED )
+				return;
+
+			if( ( caller->r.svflags & SVF_FAKECLIENT ) || caller->r.client->isTV )
+				return;
+
+			if( voted_yes )
+				caller->r.client->level.callvote_when = game.realtime + ( g_callvote_punishtime->value * 1000 );
+		}
+
 		return;
 	}
 
@@ -2148,9 +2175,9 @@ static void G_CallVotes_CheckState( void )
 	{
 		if( callvoteState.timeout - game.realtime <= 7500 && callvoteState.timeout - game.realtime > 2500 )
 			G_AnnouncerSound( NULL, trap_SoundIndex( S_ANNOUNCER_CALLVOTE_VOTE_NOW ), GS_MAX_TEAMS, true, NULL );
-		G_PrintMsg( NULL, "Vote in progress: %s%s%s, %i voted yes, %i voted no. %i required\n", S_COLOR_YELLOW,
-			G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE, yeses, noes,
-			needvotes + 1 );
+		G_PrintMsg( NULL, "Vote in progress: %s%s%s, yes: %i%%, no: %i%% (%i%% required)\n", S_COLOR_YELLOW,
+			G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE, int( yeses / voters * 100 ), int( noes / voters * 100 ),
+			int( g_callvote_electpercentage->value ) );
 		warntimer = game.realtime + 5 * 1000;
 	}
 }
@@ -2631,6 +2658,7 @@ void G_CallVotes_Init( void )
 
 	g_callvote_electpercentage =	trap_Cvar_Get( "g_vote_percent", "55", CVAR_ARCHIVE );
 	g_callvote_electtime =		trap_Cvar_Get( "g_vote_electtime", "20", CVAR_ARCHIVE );
+	g_callvote_punishtime =		trap_Cvar_Get( "g_vote_punishtime", "60", CVAR_ARCHIVE );
 	g_callvote_enabled =		trap_Cvar_Get( "g_vote_allowed", "1", CVAR_ARCHIVE );
 	g_callvote_maxchanges =		trap_Cvar_Get( "g_vote_maxchanges", "3", CVAR_ARCHIVE );
 	g_callvote_cooldowntime =	trap_Cvar_Get( "g_vote_cooldowntime", "5", CVAR_ARCHIVE );
